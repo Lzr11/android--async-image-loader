@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -24,7 +25,7 @@ public class AsyncImageloader {
 	
 	private static Map <String, SoftReference<Bitmap>> imageCaches;
 	private static List<Task> taskQuence;
-	private AsyncImageloader instance;
+	private static AsyncImageloader instance;
 	
 	public AsyncImageloader(){
 		imageCaches=new HashMap<String,SoftReference<Bitmap>>();
@@ -32,15 +33,15 @@ public class AsyncImageloader {
 		new Thread(runnable).start();
 	}
 	
-	public  AsyncImageloader getInstance(){
-		synchronized(this){
+	public static AsyncImageloader getInstance(){
 			if(instance==null)
 			{
-				instance=new AsyncImageloader();
+				synchronized (Object.class) {
+					if(instance==null)
+					       instance=new AsyncImageloader();
+				}
 				
 			}
-			
-		}
 		return instance;
 	}
 	public void displayImage(ImageView imageView,String netPath,int resourceId){
