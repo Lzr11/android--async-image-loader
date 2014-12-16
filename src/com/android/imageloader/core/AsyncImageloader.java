@@ -70,7 +70,9 @@ public class AsyncImageloader {
 			if(!taskQuence.contains(taskInstance))
 			{
 				taskQuence.add(taskInstance);
-				this.notify();
+				synchronized (runnable) {  
+                                 runnable.notify();  
+                                } 
 			}
 		}
 		return imageBitmap;
