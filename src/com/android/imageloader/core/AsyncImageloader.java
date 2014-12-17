@@ -17,6 +17,7 @@ import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.widget.ImageView;
 
 public class AsyncImageloader {
@@ -27,24 +28,25 @@ public class AsyncImageloader {
 	private static List<Task> taskQuence;
 	private static AsyncImageloader instance;
 	
-	public AsyncImageloader(){
-		imageCaches=new HashMap<String,SoftReference<Bitmap>>();
-		taskQuence=new ArrayList<Task>();
-		new Thread(runnable).start();
-	}
+	private AsyncImageloader(){}
 	
 	public static AsyncImageloader getInstance(){
 			if(instance==null)
 			{
 				synchronized (Object.class) {
 					if(instance==null)
-					       instance=new AsyncImageloader();
+					{
+						instance=new AsyncImageloader();
+						imageCaches=new HashMap<String,SoftReference<Bitmap>>();
+						taskQuence=new ArrayList<Task>();
+					}
 				}
 				
 			}
 		return instance;
 	}
 	public void displayImage(ImageView imageView,String netPath,int resourceId){
+		new Thread(runnable).start();
 		imageView.setTag(netPath);
 		Bitmap cacheBitmap;
 		if((cacheBitmap=loadBitmap(netPath,getCallback(imageView)))!=null){
@@ -70,7 +72,9 @@ public class AsyncImageloader {
 			if(!taskQuence.contains(taskInstance))
 			{
 				taskQuence.add(taskInstance);
-				this.notify();
+				synchronized (runnable) {  
+                    runnable.notify();  
+                } 
 			}
 		}
 		return imageBitmap;
@@ -94,14 +98,6 @@ public class AsyncImageloader {
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			while(taskQuence.size()>0){
-				Task taskInstance=taskQuence.remove(0);
-				if(taskInstance.execute()){
-					Message msg=handler.obtainMessage();
-					msg.obj=taskInstance;
-					handler.sendMessage(msg);
-				}
-			}
 			synchronized (this) {
 				try {
 					this.wait();
@@ -110,11 +106,20 @@ public class AsyncImageloader {
 					e.printStackTrace();
 				}
 			}
+			while(taskQuence.size()>0){
+				Task taskInstance=taskQuence.remove(0);
+				if(taskInstance.execute()){
+					Message msg=handler.obtainMessage();
+					msg.obj=taskInstance;
+					handler.sendMessage(msg);
+				}
+			}
 		}
 	};
 	Handler handler=new Handler(){
 		public void handleMessage(Message msg) {
 				if(msg.obj instanceof Task){
+					Log.d("TAG", "received message");
 					Task completeTask=(Task)msg.obj;
 					completeTask.imageCallback.loadImage(completeTask.netPath, completeTask.imageBitmap);
 				}
