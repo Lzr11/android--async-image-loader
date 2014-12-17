@@ -75,7 +75,7 @@ public class AsyncImageloader {
 				synchronized (runnable) {  
                     runnable.notify();  
                 } 
-			}
+			}                 
 		}
 		return imageBitmap;
 	}
